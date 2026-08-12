@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import ArchiveGallery from "@/components/ArchiveGallery";
-import AccessForm from "@/components/AccessForm";
 
 export default function Home() {
   return (
@@ -9,7 +8,6 @@ export default function Home() {
       <main className="absolute inset-0">
         <ArchiveGallery />
       </main>
-      <AccessForm />
     </div>
   );
 }

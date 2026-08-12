@@ -18,21 +18,21 @@ interface Breakpoint {
 export const BREAKPOINTS: Breakpoint[] = [
   {
     minWidth: 1024,
-    cardWidth: 214,
-    cardHeight: 286,
-    config: { spacing: 176, angleStep: 11, radius: 760, minScale: 0.56, edgeFalloff: 6 },
+    cardWidth: 278,
+    cardHeight: 372,
+    config: { spacing: 229, angleStep: 11, radius: 988, minScale: 0.56, edgeFalloff: 6 },
   },
   {
     minWidth: 640,
-    cardWidth: 168,
-    cardHeight: 224,
-    config: { spacing: 138, angleStep: 13, radius: 540, minScale: 0.52, edgeFalloff: 5 },
+    cardWidth: 218,
+    cardHeight: 291,
+    config: { spacing: 179, angleStep: 13, radius: 702, minScale: 0.52, edgeFalloff: 5 },
   },
   {
     minWidth: 0,
-    cardWidth: 124,
-    cardHeight: 166,
-    config: { spacing: 100, angleStep: 17, radius: 320, minScale: 0.46, edgeFalloff: 3.6 },
+    cardWidth: 161,
+    cardHeight: 216,
+    config: { spacing: 130, angleStep: 17, radius: 416, minScale: 0.46, edgeFalloff: 3.6 },
   },
 ];
 
