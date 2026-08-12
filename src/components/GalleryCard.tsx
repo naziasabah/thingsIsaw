@@ -1,0 +1,52 @@
+"use client";
+
+import { forwardRef, useEffect, useRef, useState } from "react";
+import type { ArchiveImage } from "@/data/images";
+
+interface GalleryCardProps {
+  image: ArchiveImage;
+}
+
+const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function GalleryCard(
+  { image },
+  ref,
+) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // A cached or instant (e.g. data URI) image can finish loading before this
+  // effect attaches, so the onLoad event never fires — check .complete too.
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete) {
+      setStatus(img.naturalWidth > 0 ? "loaded" : "error");
+    }
+  }, [image.src]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute left-1/2 top-1/2 h-[166px] w-[124px] will-change-transform sm:h-[224px] sm:w-[168px] lg:h-[286px] lg:w-[214px]"
+    >
+      <div className="relative h-full w-full overflow-hidden border border-black/10 bg-[#dcdddf] shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)]">
+        {status !== "error" && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            ref={imgRef}
+            src={image.src}
+            alt={image.alt}
+            draggable={false}
+            onLoad={() => setStatus("loaded")}
+            onError={() => setStatus("error")}
+            className={`h-full w-full select-none object-cover transition-opacity duration-700 ${
+              status === "loaded" ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        )}
+        {status !== "loaded" && <div className="absolute inset-0 bg-[#dee0e2]" aria-hidden="true" />}
+      </div>
+    </div>
+  );
+});
+
+export default GalleryCard;
