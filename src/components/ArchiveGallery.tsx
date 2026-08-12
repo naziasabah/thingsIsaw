@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import GalleryCard from "./GalleryCard";
 import { getConfig } from "./archiveConfig";
-import { archiveImages } from "@/data/images";
+import type { ArchiveImage } from "@/data/images";
 
 const FRICTION = 0.935;
 const WHEEL_GAIN = 0.5;
@@ -12,7 +12,11 @@ const DRAG_GAIN = 1.5;
 const VELOCITY_CAP = 45;
 const VELOCITY_STOP = 0.02;
 
-export default function ArchiveGallery() {
+interface ArchiveGalleryProps {
+  images: ArchiveImage[];
+}
+
+export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -26,7 +30,7 @@ export default function ArchiveGallery() {
 
   const [isDragging, setIsDragging] = useState(false);
 
-  const count = archiveImages.length;
+  const count = images.length;
 
   useEffect(() => {
     function syncConfig() {
@@ -142,7 +146,7 @@ export default function ArchiveGallery() {
       }`}
     >
       <div className="absolute inset-0 [transform-style:preserve-3d]">
-        {archiveImages.map((image, i) => (
+        {images.map((image, i) => (
           <GalleryCard key={image.id} image={image} ref={(el) => { cardRefs.current[i] = el; }} />
         ))}
       </div>
