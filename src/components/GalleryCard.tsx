@@ -26,7 +26,7 @@ const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function Galler
   return (
     <div
       ref={ref}
-      className="absolute left-1/2 top-1/2 h-[216px] w-[161px] will-change-transform sm:h-[291px] sm:w-[218px] lg:h-[372px] lg:w-[278px]"
+      className="absolute left-1/2 top-1/2 h-[201px] w-[150px] will-change-transform sm:h-[291px] sm:w-[218px] lg:h-[480px] lg:w-[360px]"
     >
       <div className="relative h-full w-full overflow-hidden border border-black/10 bg-[#dcdddf] shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)]">
         {status !== "error" && (

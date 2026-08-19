@@ -18,8 +18,8 @@ interface Breakpoint {
 export const BREAKPOINTS: Breakpoint[] = [
   {
     minWidth: 1024,
-    cardWidth: 278,
-    cardHeight: 372,
+    cardWidth: 360,
+    cardHeight: 480,
     config: { spacing: 229, angleStep: 11, radius: 988, minScale: 0.56, edgeFalloff: 6 },
   },
   {
@@ -30,9 +30,11 @@ export const BREAKPOINTS: Breakpoint[] = [
   },
   {
     minWidth: 0,
-    cardWidth: 161,
-    cardHeight: 216,
-    config: { spacing: 130, angleStep: 17, radius: 416, minScale: 0.46, edgeFalloff: 3.6 },
+    cardWidth: 150,
+    cardHeight: 201,
+    // Tuned so ~3 cards sit fully in view with a peek of a 4th at each edge
+    // on a 375-430px phone, instead of the side cards touching the screen edge.
+    config: { spacing: 121, angleStep: 18, radius: 365, minScale: 0.46, edgeFalloff: 4 },
   },
 ];
 
