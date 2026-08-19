@@ -45,7 +45,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     let frame: number;
 
     function render() {
-      const { spacing, angleStep, radius, minScale, edgeFalloff } = configRef.current;
+      const { spacing, angleStep, radius, scaleStep, minScale, edgeFalloff } = configRef.current;
       const slot = offsetRef.current / spacing;
 
       cardRefs.current.forEach((el, i) => {
@@ -58,7 +58,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
         const rad = (theta * Math.PI) / 180;
         const x = radius * Math.sin(rad);
         const z = radius * (Math.cos(rad) - 1);
-        const scale = Math.max(minScale, 1 - Math.abs(raw) * 0.07);
+        const scale = Math.max(minScale, 1 - Math.abs(raw) * scaleStep);
         const opacity = Math.max(0, Math.min(1, 1 - Math.abs(raw) / edgeFalloff));
 
         el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;

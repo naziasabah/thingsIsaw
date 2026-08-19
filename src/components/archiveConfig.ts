@@ -2,6 +2,9 @@ export interface CarouselConfig {
   spacing: number;
   angleStep: number;
   radius: number;
+  // How much each card shrinks per step away from center (scale -= scaleStep
+  // per index, floored at minScale). Higher = more pronounced depth effect.
+  scaleStep: number;
   minScale: number;
   edgeFalloff: number;
 }
@@ -20,13 +23,13 @@ export const BREAKPOINTS: Breakpoint[] = [
     minWidth: 1024,
     cardWidth: 360,
     cardHeight: 480,
-    config: { spacing: 229, angleStep: 11, radius: 988, minScale: 0.56, edgeFalloff: 6 },
+    config: { spacing: 229, angleStep: 11, radius: 988, scaleStep: 0.07, minScale: 0.56, edgeFalloff: 6 },
   },
   {
     minWidth: 640,
     cardWidth: 218,
     cardHeight: 291,
-    config: { spacing: 179, angleStep: 13, radius: 702, minScale: 0.52, edgeFalloff: 5 },
+    config: { spacing: 179, angleStep: 13, radius: 702, scaleStep: 0.07, minScale: 0.52, edgeFalloff: 5 },
   },
   {
     minWidth: 0,
@@ -34,7 +37,10 @@ export const BREAKPOINTS: Breakpoint[] = [
     cardHeight: 201,
     // Tuned so ~3 cards sit fully in view with a peek of a 4th at each edge
     // on a 375-430px phone, instead of the side cards touching the screen edge.
-    config: { spacing: 121, angleStep: 18, radius: 365, minScale: 0.46, edgeFalloff: 4 },
+    // scaleStep/angleStep are pushed well past desktop's so the size and
+    // rotation difference between center and side cards reads clearly on
+    // a small screen instead of looking flat.
+    config: { spacing: 121, angleStep: 26, radius: 258, scaleStep: 0.15, minScale: 0.4, edgeFalloff: 4 },
   },
 ];
 
