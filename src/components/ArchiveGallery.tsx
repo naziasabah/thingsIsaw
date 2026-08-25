@@ -6,10 +6,10 @@ import GalleryCard from "./GalleryCard";
 import { getConfig } from "./archiveConfig";
 import type { ArchiveImage } from "@/data/images";
 
-const FRICTION = 0.935;
+const FRICTION = 0.95;
 const WHEEL_GAIN = 0.5;
-const DRAG_GAIN = 1.5;
-const VELOCITY_CAP = 45;
+const DRAG_GAIN = 2.2;
+const VELOCITY_CAP = 70;
 const VELOCITY_STOP = 0.02;
 
 interface ArchiveGalleryProps {
