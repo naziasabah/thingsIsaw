@@ -229,15 +229,19 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     setFocusedIndex(null);
   }
 
-  // Toggles focus for a clicked/activated card. Checked against
+  // Handles a genuine click/tap anywhere in the carousel, including empty
+  // background (index null). While a card is actively focused, ANY such
+  // click — the focused photo itself, a dimmed neighbor, or the empty
+  // background around them — exits focus, same as the close button.
+  // Otherwise a click that resolved to a card focuses it. Checked against
   // focusTargetRef (the requested end-state) rather than focusedIndexRef
   // (which lags behind until its fade animation settles) so a click made
   // while a previous focus/exit is still animating out responds immediately
   // instead of being silently swallowed.
-  function activateCard(index: number) {
-    if (focusedIndexRef.current === index && focusTargetRef.current === 1) {
+  function handleContainerActivation(index: number | null) {
+    if (focusedIndexRef.current !== null && focusTargetRef.current === 1) {
       exitFocus();
-    } else {
+    } else if (index !== null) {
       focusOn(index);
     }
   }
@@ -291,7 +295,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   // captured (below), browsers differ on whether/where a click still fires,
   // so click can't be trusted to distinguish a tap from a drag release.
   function handlePointerUp() {
-    const wasGenuineClick = !hasDraggedRef.current && pointerDownIndexRef.current !== null;
+    const wasGenuineClick = !hasDraggedRef.current;
     const index = pointerDownIndexRef.current;
 
     // Re-derive release velocity from the whole trailing window rather than
@@ -311,8 +315,8 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     setIsDragging(false);
     pointerDownIndexRef.current = null;
 
-    if (!wasGenuineClick || index === null || Number.isNaN(index)) return;
-    activateCard(index);
+    if (!wasGenuineClick) return;
+    handleContainerActivation(index !== null && !Number.isNaN(index) ? index : null);
   }
 
   function cancelDrag() {
@@ -342,7 +346,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
               key={image.id}
               image={image}
               index={i}
-              onActivate={activateCard}
+              onActivate={handleContainerActivation}
               ref={(el) => { cardRefs.current[i] = el; }}
             />
           ))}
