@@ -7,12 +7,17 @@ import PhotoModal from "./PhotoModal";
 import { getConfig } from "./archiveConfig";
 import type { ArchiveImage } from "@/data/images";
 
-const FRICTION = 0.935;
+const FRICTION = 0.95;
 const WHEEL_GAIN = 0.5;
-const DRAG_GAIN = 1.5;
-const VELOCITY_CAP = 45;
+const DRAG_GAIN = 1.9;
+const VELOCITY_CAP = 70;
 const VELOCITY_STOP = 0.02;
 const CLICK_DRAG_THRESHOLD = 6;
+// Release momentum is measured over this trailing window instead of the
+// single last pointermove frame, so a flick's throw speed reflects the whole
+// gesture rather than whatever tiny/coalesced delta touch happened to report
+// right before lift-off.
+const VELOCITY_WINDOW_MS = 100;
 
 interface ArchiveGalleryProps {
   images: ArchiveImage[];
@@ -31,6 +36,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   const lastMoveRef = useRef({ x: 0, t: 0 });
   const hasDraggedRef = useRef(false);
   const pointerDownIndexRef = useRef<number | null>(null);
+  const velocitySamplesRef = useRef<{ offset: number; t: number }[]>([]);
 
   const [isDragging, setIsDragging] = useState(false);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -115,6 +121,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     dragStartOffsetRef.current = offsetRef.current;
     lastMoveRef.current = { x: e.clientX, t: performance.now() };
     velocityRef.current = 0;
+    velocitySamplesRef.current = [{ offset: offsetRef.current, t: performance.now() }];
     e.currentTarget.setPointerCapture(e.pointerId);
   }
 
@@ -134,6 +141,11 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
     offsetRef.current = nextOffset;
     lastMoveRef.current = { x: e.clientX, t: now };
+
+    const samples = velocitySamplesRef.current;
+    samples.push({ offset: nextOffset, t: now });
+    const cutoff = now - VELOCITY_WINDOW_MS;
+    while (samples.length > 1 && samples[0].t < cutoff) samples.shift();
   }
 
   // Resolve tap-vs-drag here, from the pointer's own down/up positions, rather
@@ -143,6 +155,19 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   function handlePointerUp() {
     const wasGenuineClick = !hasDraggedRef.current && pointerDownIndexRef.current !== null;
     const index = pointerDownIndexRef.current;
+
+    // Re-derive release velocity from the whole trailing window rather than
+    // trusting the last live per-frame sample (see VELOCITY_WINDOW_MS above).
+    const samples = velocitySamplesRef.current;
+    if (samples.length > 0) {
+      const first = samples[0];
+      const now = performance.now();
+      const dt = now - first.t;
+      if (dt > 8) {
+        const flickVelocity = ((offsetRef.current - first.offset) / dt) * 16.67;
+        velocityRef.current = Math.max(-VELOCITY_CAP, Math.min(VELOCITY_CAP, flickVelocity));
+      }
+    }
 
     draggingRef.current = false;
     setIsDragging(false);
