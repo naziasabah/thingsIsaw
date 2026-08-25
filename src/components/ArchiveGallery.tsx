@@ -10,6 +10,13 @@ const FRICTION = 0.95;
 const WHEEL_GAIN = 0.5;
 const DRAG_GAIN = 1.9;
 const VELOCITY_CAP = 70;
+// Touch gets its own, snappier feel than mouse/trackpad drag: real
+// touchscreens report movement in coarser, more delayed batches than a
+// mouse, which reads as sluggish unless swipes are given extra sensitivity
+// and a longer momentum glide to compensate.
+const TOUCH_DRAG_GAIN = 2.6;
+const TOUCH_FRICTION = 0.965;
+const TOUCH_VELOCITY_CAP = 105;
 const VELOCITY_STOP = 0.02;
 const CLICK_DRAG_THRESHOLD = 6;
 // Release momentum is measured over this trailing window instead of the
@@ -49,6 +56,10 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   const hasDraggedRef = useRef(false);
   const pointerDownIndexRef = useRef<number | null>(null);
   const velocitySamplesRef = useRef<{ offset: number; t: number }[]>([]);
+  // Whether the in-progress (or most recent) drag came from a touchscreen —
+  // drives which gain/friction/cap constants apply, without touching
+  // mouse/trackpad feel.
+  const isTouchRef = useRef(false);
 
   // Programmatic "snap to this slot" target for entering/stepping through
   // focus mode. Null means the offset is under normal momentum physics.
@@ -136,7 +147,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
       } else if (!draggingRef.current) {
         if (Math.abs(velocityRef.current) > VELOCITY_STOP) {
           offsetRef.current += velocityRef.current;
-          velocityRef.current *= FRICTION;
+          velocityRef.current *= isTouchRef.current ? TOUCH_FRICTION : FRICTION;
         } else {
           velocityRef.current = 0;
         }
@@ -248,6 +259,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     hasDraggedRef.current = false;
+    isTouchRef.current = e.pointerType === "touch";
     const directCard = (e.target as HTMLElement).closest<HTMLElement>("[data-card-index]");
     pointerDownIndexRef.current =
       directCard && directCard.style.pointerEvents !== "none"
@@ -273,7 +285,8 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
     if (!draggingRef.current) return;
 
-    const nextOffset = dragStartOffsetRef.current - dx * DRAG_GAIN;
+    const dragGain = isTouchRef.current ? TOUCH_DRAG_GAIN : DRAG_GAIN;
+    const nextOffset = dragStartOffsetRef.current - dx * dragGain;
 
     const now = performance.now();
     const dt = now - lastMoveRef.current.t;
@@ -306,8 +319,9 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
       const now = performance.now();
       const dt = now - first.t;
       if (dt > 8) {
+        const cap = isTouchRef.current ? TOUCH_VELOCITY_CAP : VELOCITY_CAP;
         const flickVelocity = ((offsetRef.current - first.offset) / dt) * 16.67;
-        velocityRef.current = Math.max(-VELOCITY_CAP, Math.min(VELOCITY_CAP, flickVelocity));
+        velocityRef.current = Math.max(-cap, Math.min(cap, flickVelocity));
       }
     }
 
