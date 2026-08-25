@@ -136,15 +136,27 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     lastMoveRef.current = { x: e.clientX, t: now };
   }
 
-  function endDrag() {
+  // Resolve tap-vs-drag here, from the pointer's own down/up positions, rather
+  // than relying on the browser's separate "click" event: once a pointer is
+  // captured (below), browsers differ on whether/where a click still fires,
+  // so click can't be trusted to distinguish a tap from a drag release.
+  function handlePointerUp() {
+    const wasGenuineClick = !hasDraggedRef.current && pointerDownIndexRef.current !== null;
+    const index = pointerDownIndexRef.current;
+
     draggingRef.current = false;
     setIsDragging(false);
+    pointerDownIndexRef.current = null;
+
+    if (wasGenuineClick && index !== null && !Number.isNaN(index)) {
+      setOpenIndex(index);
+    }
   }
 
-  function handleContainerClick() {
-    if (hasDraggedRef.current) return;
-    const index = pointerDownIndexRef.current;
-    if (index !== null && !Number.isNaN(index)) setOpenIndex(index);
+  function cancelDrag() {
+    draggingRef.current = false;
+    setIsDragging(false);
+    pointerDownIndexRef.current = null;
   }
 
   return (
@@ -153,12 +165,11 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
         ref={containerRef}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={cancelDrag}
         onPointerLeave={(e) => {
-          if (e.buttons === 0) endDrag();
+          if (e.buttons === 0) cancelDrag();
         }}
-        onClick={handleContainerClick}
         className={`relative h-full w-full touch-none select-none [perspective:1600px] ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
