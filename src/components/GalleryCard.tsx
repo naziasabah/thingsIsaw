@@ -5,10 +5,12 @@ import type { ArchiveImage } from "@/data/images";
 
 interface GalleryCardProps {
   image: ArchiveImage;
+  index: number;
+  onOpen: (index: number) => void;
 }
 
 const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function GalleryCard(
-  { image },
+  { image, index, onOpen },
   ref,
 ) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
@@ -26,7 +28,17 @@ const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function Galler
   return (
     <div
       ref={ref}
-      className="absolute left-1/2 top-1/2 h-[201px] w-[150px] will-change-transform sm:h-[291px] sm:w-[218px] lg:h-[480px] lg:w-[360px]"
+      data-card-index={index}
+      role="button"
+      tabIndex={0}
+      aria-label={`Open ${image.alt}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(index);
+        }
+      }}
+      className="absolute left-1/2 top-1/2 h-[201px] w-[150px] cursor-pointer will-change-transform sm:h-[291px] sm:w-[218px] lg:h-[480px] lg:w-[360px]"
     >
       <div className="relative h-full w-full overflow-hidden border border-black/10 bg-[#dcdddf] shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)]">
         {status !== "error" && (

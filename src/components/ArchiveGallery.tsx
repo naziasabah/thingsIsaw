@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import GalleryCard from "./GalleryCard";
+import PhotoModal from "./PhotoModal";
 import { getConfig } from "./archiveConfig";
 import type { ArchiveImage } from "@/data/images";
 
@@ -11,6 +12,7 @@ const WHEEL_GAIN = 0.5;
 const DRAG_GAIN = 1.5;
 const VELOCITY_CAP = 45;
 const VELOCITY_STOP = 0.02;
+const CLICK_DRAG_THRESHOLD = 6;
 
 interface ArchiveGalleryProps {
   images: ArchiveImage[];
@@ -27,8 +29,11 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   const dragStartXRef = useRef(0);
   const dragStartOffsetRef = useRef(0);
   const lastMoveRef = useRef({ x: 0, t: 0 });
+  const hasDraggedRef = useRef(false);
+  const pointerDownIndexRef = useRef<number | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const count = images.length;
 
@@ -102,6 +107,9 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
   function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
     draggingRef.current = true;
+    hasDraggedRef.current = false;
+    const card = (e.target as HTMLElement).closest<HTMLElement>("[data-card-index]");
+    pointerDownIndexRef.current = card ? Number(card.dataset.cardIndex) : null;
     setIsDragging(true);
     dragStartXRef.current = e.clientX;
     dragStartOffsetRef.current = offsetRef.current;
@@ -114,6 +122,8 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     if (!draggingRef.current) return;
 
     const dx = e.clientX - dragStartXRef.current;
+    if (Math.abs(dx) > CLICK_DRAG_THRESHOLD) hasDraggedRef.current = true;
+
     const nextOffset = dragStartOffsetRef.current - dx * DRAG_GAIN;
 
     const now = performance.now();
@@ -126,30 +136,64 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     lastMoveRef.current = { x: e.clientX, t: now };
   }
 
-  function endDrag() {
+  // Resolve tap-vs-drag here, from the pointer's own down/up positions, rather
+  // than relying on the browser's separate "click" event: once a pointer is
+  // captured (below), browsers differ on whether/where a click still fires,
+  // so click can't be trusted to distinguish a tap from a drag release.
+  function handlePointerUp() {
+    const wasGenuineClick = !hasDraggedRef.current && pointerDownIndexRef.current !== null;
+    const index = pointerDownIndexRef.current;
+
     draggingRef.current = false;
     setIsDragging(false);
+    pointerDownIndexRef.current = null;
+
+    if (wasGenuineClick && index !== null && !Number.isNaN(index)) {
+      setOpenIndex(index);
+    }
+  }
+
+  function cancelDrag() {
+    draggingRef.current = false;
+    setIsDragging(false);
+    pointerDownIndexRef.current = null;
   }
 
   return (
-    <div
-      ref={containerRef}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
-      onPointerLeave={(e) => {
-        if (e.buttons === 0) endDrag();
-      }}
-      className={`relative h-full w-full touch-none select-none [perspective:1600px] ${
-        isDragging ? "cursor-grabbing" : "cursor-grab"
-      }`}
-    >
-      <div className="absolute inset-0 [transform-style:preserve-3d]">
-        {images.map((image, i) => (
-          <GalleryCard key={image.id} image={image} ref={(el) => { cardRefs.current[i] = el; }} />
-        ))}
+    <>
+      <div
+        ref={containerRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={cancelDrag}
+        onPointerLeave={(e) => {
+          if (e.buttons === 0) cancelDrag();
+        }}
+        className={`relative h-full w-full touch-none select-none [perspective:1600px] ${
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
+      >
+        <div className="absolute inset-0 [transform-style:preserve-3d]">
+          {images.map((image, i) => (
+            <GalleryCard
+              key={image.id}
+              image={image}
+              index={i}
+              onOpen={setOpenIndex}
+              ref={(el) => { cardRefs.current[i] = el; }}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+      {openIndex !== null && (
+        <PhotoModal
+          images={images}
+          index={openIndex}
+          onClose={() => setOpenIndex(null)}
+          onNavigate={setOpenIndex}
+        />
+      )}
+    </>
   );
 }
