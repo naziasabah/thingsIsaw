@@ -39,7 +39,7 @@ const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function Galler
           onActivate(index);
         }
       }}
-      className="absolute left-1/2 top-1/2 h-[201px] w-[150px] cursor-pointer will-change-transform sm:h-[291px] sm:w-[218px] lg:h-[480px] lg:w-[360px]"
+      className="absolute left-1/2 top-1/2 h-[308px] w-[230px] cursor-pointer will-change-transform sm:h-[291px] sm:w-[218px] lg:h-[480px] lg:w-[360px]"
     >
       {/* Local perspective, independent of the carousel's own — the flip is
           a self-contained 3D effect nested inside a card that's already
