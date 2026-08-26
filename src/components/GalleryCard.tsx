@@ -71,7 +71,7 @@ const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function Galler
           {/* Back face */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden border border-black/10 bg-white/80 shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
             {image.description && (
-              <p className="px-6 text-center font-mono text-xs leading-relaxed tracking-[0.08em] text-black/60 sm:text-sm">
+              <p className="px-6 text-center font-mono text-[10px] leading-relaxed tracking-[0.08em] text-black/60 sm:text-[11px]">
                 {image.description}
               </p>
             )}
