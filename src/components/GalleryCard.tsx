@@ -44,13 +44,19 @@ const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function Galler
       {/* Local perspective, independent of the carousel's own — the flip is
           a self-contained 3D effect nested inside a card that's already
           being positioned by the carousel's own transform. */}
-      <div className="relative h-full w-full [perspective:1400px]">
+      <div className="relative h-full w-full [-webkit-perspective:1400px] [perspective:1400px]">
         <div
-          className="relative h-full w-full [transform-style:preserve-3d] transition-transform duration-700 ease-in-out"
-          style={{ transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
+          className="relative h-full w-full [-webkit-transform-style:preserve-3d] [transform-style:preserve-3d] transition-transform duration-700 ease-in-out"
+          style={{
+            transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            WebkitTransform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          }}
         >
-          {/* Front face */}
-          <div className="absolute inset-0 overflow-hidden border border-black/10 bg-[#dcdddf] shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)] [backface-visibility:hidden]">
+          {/* Front face. The translateZ nudge forces its own compositing
+              layer — Safari has long-standing bugs where backface-visibility
+              on a flip card can still let the "hidden" face show through
+              without this. */}
+          <div className="absolute inset-0 overflow-hidden border border-black/10 bg-[#dcdddf] shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] [transform:translateZ(0.01px)]">
             {status !== "error" && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -69,7 +75,7 @@ const GalleryCard = forwardRef<HTMLDivElement, GalleryCardProps>(function Galler
           </div>
 
           {/* Back face */}
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden border border-black/10 bg-white shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)] [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden border border-black/10 bg-white shadow-[0_35px_60px_-30px_rgba(0,0,0,0.4)] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] [transform:rotateY(180deg)_translateZ(0.01px)]">
             {image.description && (
               <p className="px-6 text-center font-mono text-[10px] leading-relaxed tracking-[0.08em] text-black/60 sm:text-[11px]">
                 {image.description}
