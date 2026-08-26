@@ -82,6 +82,12 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
+  // Mirrors isFlipped for the imperative render loop below (refs, not state,
+  // since that loop runs outside React's render cycle).
+  const isFlippedRef = useRef(false);
+  useEffect(() => {
+    isFlippedRef.current = isFlipped;
+  }, [isFlipped]);
 
   const count = images.length;
 
@@ -135,7 +141,18 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
         el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
         el.style.opacity = opacity.toFixed(3);
-        el.style.filter = `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
+        // `filter` on an ancestor of the card's own 3D-transformed flip
+        // structure forces that subtree into its own compositing layer in
+        // Chromium/WebKit, which can break backface-visibility on the flip's
+        // front/back faces (they bleed through each other) — independent of
+        // whether the filter's values are visually a no-op. Only actually
+        // matters while the card is flipped, and by then a focused card has
+        // already settled to raw≈0 (full color) anyway, so dropping the
+        // filter here has no visible effect.
+        el.style.filter =
+          isFocused && isFlippedRef.current
+            ? "none"
+            : `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
         // Only holds the top z-index while actively focused: during the
         // exit tail its still-enlarged footprint would otherwise keep
         // outranking (and stealing clicks from) a neighbor it visually
