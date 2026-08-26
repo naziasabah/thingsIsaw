@@ -19,3 +19,12 @@ export const PHOTO_ORDER: string[] = [];
 // Pier" }. Any photo whose filename isn't listed here just has no caption
 // for now.
 export const PHOTO_CAPTIONS: Record<string, string> = {};
+
+// To give a photo a description on the back of its focused/flip card, add a
+// "filename": "description text" entry below (src/data/galleryConfig.ts:26),
+// e.g. { "IMG_1874.jpg": "Almost missed this shot." }. Keep it to a single
+// short line — it's written in a handwritten-style font on the card back.
+// Any photo whose filename isn't listed here just can't be flipped for now.
+export const DESCRIPTIONS: Record<string, string> = {
+  "IMG_1874.jpg": "Almost missed this shot.",
+};

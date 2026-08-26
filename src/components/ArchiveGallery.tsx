@@ -81,6 +81,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
   const [isDragging, setIsDragging] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
 
   const count = images.length;
 
@@ -242,6 +243,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     focusTargetRef.current = 1;
     velocityRef.current = 0;
     setFocusedIndex(index);
+    setIsFlipped(false);
   }
 
   function stepFocus(direction: 1 | -1) {
@@ -253,20 +255,26 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   function exitFocus() {
     focusTargetRef.current = 0;
     setFocusedIndex(null);
+    setIsFlipped(false);
   }
 
   // Handles a genuine click/tap anywhere in the carousel, including empty
-  // background (index null). While a card is actively focused, ANY such
-  // click — the focused photo itself, a dimmed neighbor, or the empty
-  // background around them — exits focus, same as the close button.
-  // Otherwise a click that resolved to a card focuses it. Checked against
-  // focusTargetRef (the requested end-state) rather than focusedIndexRef
-  // (which lags behind until its fade animation settles) so a click made
-  // while a previous focus/exit is still animating out responds immediately
-  // instead of being silently swallowed.
+  // background (index null). While a card is actively focused, clicking the
+  // focused photo itself flips it to reveal its description (if it has one)
+  // rather than exiting; clicking anything else — a dimmed neighbor, or the
+  // empty background around them — still exits focus, same as the close
+  // button. Otherwise a click that resolved to a card focuses it. Checked
+  // against focusTargetRef (the requested end-state) rather than
+  // focusedIndexRef (which lags behind until its fade animation settles) so
+  // a click made while a previous focus/exit is still animating out
+  // responds immediately instead of being silently swallowed.
   function handleContainerActivation(index: number | null) {
     if (focusedIndexRef.current !== null && focusTargetRef.current === 1) {
-      exitFocus();
+      if (index === focusedIndexRef.current) {
+        if (images[index]?.description) setIsFlipped((flipped) => !flipped);
+      } else {
+        exitFocus();
+      }
     } else if (index !== null) {
       focusOn(index);
     }
@@ -375,6 +383,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
               key={image.id}
               image={image}
               index={i}
+              isFlipped={focusedIndex === i && isFlipped}
               onActivate={handleContainerActivation}
               ref={(el) => { cardRefs.current[i] = el; }}
             />
