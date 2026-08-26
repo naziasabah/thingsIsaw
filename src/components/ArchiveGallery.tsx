@@ -34,6 +34,18 @@ const FOCUS_SETTLE = 0.01;
 // How much bigger than a normal centered card (scale 1) the focused card
 // grows — clearly past anything reachable by scrolling alone.
 const FOCUS_SCALE_BONUS = 0.5;
+// Extra forward translateZ for the focused card, on top of its own
+// (near-zero, centered) depth. All cards share one preserve-3d rendering
+// context (see the container below), and Safari/WebKit is known to sort
+// overlapping geometry in such a context by actual 3D depth rather than
+// reliably honoring z-index — so a rotated neighbor's near edge can win the
+// paint order over the focused card despite its much higher z-index. The
+// worst case (an adjacent card at its steepest visible rotation) computes to
+// roughly 18px of forward intrusion at this carousel's tightest (mobile)
+// geometry; this boost clears that with comfortable margin on every
+// breakpoint. Eases in/out with `progress` like FOCUS_SCALE_BONUS, so it
+// reads as part of the same grow-into-focus motion.
+const FOCUS_Z_BOOST = 60;
 // How far the non-focused cards fade down while one card is focused. They
 // stay visible, just clearly secondary.
 const DIM_OPACITY = 0.28;
@@ -159,7 +171,16 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
         // color, opacity 1) by then anyway, so this has no visible effect on
         // the color-grade/edge-fade look — mobile-only, desktop unaffected.
         const hardenAgainstBleed = isFocused && (isFlippedRef.current || isMobileRef.current);
-        el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+        // z-index alone isn't reliable here: all cards share one preserve-3d
+        // rendering context (see the container below), and Safari/WebKit is
+        // known to sort overlapping geometry within such a context by actual
+        // 3D depth instead of respecting z-index — so give the focused card
+        // real forward depth too, not just the highest z-index (see
+        // FOCUS_Z_BOOST above). This is a general WebKit behavior, not a
+        // mobile-specific symptom, so — unlike the mobile-only hardening
+        // above — it applies on every breakpoint.
+        const zBoosted = isFocused ? z + progress * FOCUS_Z_BOOST : z;
+        el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${zBoosted.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
         el.style.opacity = hardenAgainstBleed ? "1" : opacity.toFixed(3);
         el.style.filter = hardenAgainstBleed
           ? "none"
