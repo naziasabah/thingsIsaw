@@ -91,9 +91,15 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
   const count = images.length;
 
+  // Mirrors the "mobile" breakpoint (archiveConfig's width<640 bucket) for
+  // the render loop below — kept as a plain ref, synced alongside configRef,
+  // rather than re-deriving it from configRef's tuned physics values.
+  const isMobileRef = useRef(false);
+
   useEffect(() => {
     function syncConfig() {
       configRef.current = getConfig(window.innerWidth);
+      isMobileRef.current = window.innerWidth < 640;
     }
     syncConfig();
     window.addEventListener("resize", syncConfig);
@@ -139,20 +145,25 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
         const saturation = 1 - colorDistance * (1 - SATURATION_MIN);
         const brightness = 1 - colorDistance * (1 - BRIGHTNESS_MIN);
 
+        // `filter` (even an identity value) on an ancestor of the card's own
+        // 3D-transformed flip structure forces that subtree into its own
+        // compositing layer in Chromium/WebKit, which can break
+        // backface-visibility on the flip's front/back faces — bleed-through
+        // either between a card's own front/back, or (mobile only, where the
+        // tight carousel radius packs neighbors close enough on screen to be
+        // physically behind the focused card) from a neighboring card. On
+        // desktop the radius is wide enough that nothing sits behind the
+        // focused card, so this only needs to happen while actually flipped
+        // there; on mobile it's dropped for the whole time the card is
+        // focused. Either way the focused card has settled to raw≈0 (full
+        // color, opacity 1) by then anyway, so this has no visible effect on
+        // the color-grade/edge-fade look — mobile-only, desktop unaffected.
+        const hardenAgainstBleed = isFocused && (isFlippedRef.current || isMobileRef.current);
         el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-        el.style.opacity = opacity.toFixed(3);
-        // `filter` on an ancestor of the card's own 3D-transformed flip
-        // structure forces that subtree into its own compositing layer in
-        // Chromium/WebKit, which can break backface-visibility on the flip's
-        // front/back faces (they bleed through each other) — independent of
-        // whether the filter's values are visually a no-op. Only actually
-        // matters while the card is flipped, and by then a focused card has
-        // already settled to raw≈0 (full color) anyway, so dropping the
-        // filter here has no visible effect.
-        el.style.filter =
-          isFocused && isFlippedRef.current
-            ? "none"
-            : `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
+        el.style.opacity = hardenAgainstBleed ? "1" : opacity.toFixed(3);
+        el.style.filter = hardenAgainstBleed
+          ? "none"
+          : `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
         // Only holds the top z-index while actively focused: during the
         // exit tail its still-enlarged footprint would otherwise keep
         // outranking (and stealing clicks from) a neighbor it visually
