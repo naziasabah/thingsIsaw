@@ -37,6 +37,14 @@ const FOCUS_SCALE_BONUS = 0.5;
 // How far the non-focused cards fade down while one card is focused. They
 // stay visible, just clearly secondary.
 const DIM_OPACITY = 0.28;
+// Color grade: cards desaturate and dim the further they sit from center,
+// full color/brightness only right at center (or focused, which centers
+// itself). Reaches its floor within a few slots so it's still legible on
+// the nearest side cards, not just the ones already faded near-invisible.
+// Kept subtle — a soft depth cue, not a dramatic color pop.
+const COLOR_FALLOFF = 3;
+const SATURATION_MIN = 0.55;
+const BRIGHTNESS_MIN = 0.85;
 
 interface ArchiveGalleryProps {
   images: ArchiveImage[];
@@ -117,9 +125,16 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
         const opacity =
           focusedIdx !== null && !isFocused ? baseOpacity * (1 - progress * (1 - DIM_OPACITY)) : baseOpacity;
         const normalZ = Math.round(1000 - Math.abs(raw) * 10);
+        // Always distance-driven (not focus-driven): full color right at
+        // center, receding toward the floor by COLOR_FALLOFF slots out. A
+        // focused card centers itself, so it reaches full color the same way.
+        const colorDistance = Math.min(1, Math.abs(raw) / COLOR_FALLOFF);
+        const saturation = 1 - colorDistance * (1 - SATURATION_MIN);
+        const brightness = 1 - colorDistance * (1 - BRIGHTNESS_MIN);
 
         el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
         el.style.opacity = opacity.toFixed(3);
+        el.style.filter = `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
         // Only holds the top z-index while actively focused: during the
         // exit tail its still-enlarged footprint would otherwise keep
         // outranking (and stealing clicks from) a neighbor it visually
