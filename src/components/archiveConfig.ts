@@ -18,31 +18,31 @@ interface Breakpoint {
   config: CarouselConfig;
 }
 
+// scaleStep/radius are tuned together so neighboring cards are both clearly
+// smaller than center (a steep scale drop-off) AND never overlap it — each
+// card's bounding box sits with a clean gap past the previous one's edge,
+// so an adjacent card can never cover part of the center image.
 export const BREAKPOINTS: Breakpoint[] = [
   {
     minWidth: 1024,
     cardWidth: 360,
     cardHeight: 480,
-    config: { spacing: 229, angleStep: 11, radius: 988, scaleStep: 0.07, minScale: 0.56, edgeFalloff: 6 },
+    config: { spacing: 229, angleStep: 11, radius: 1761, scaleStep: 0.3, minScale: 0.4, edgeFalloff: 6 },
   },
   {
     minWidth: 640,
     cardWidth: 218,
     cardHeight: 291,
-    config: { spacing: 179, angleStep: 13, radius: 702, scaleStep: 0.07, minScale: 0.52, edgeFalloff: 5 },
+    config: { spacing: 179, angleStep: 13, radius: 935, scaleStep: 0.3, minScale: 0.4, edgeFalloff: 5 },
   },
   {
     minWidth: 0,
     cardWidth: 230,
     cardHeight: 308,
-    // A noticeably larger center card with the same 5-cards-visible count
-    // (edgeFalloff unchanged) as before, but the two cards on each side now
-    // read as thin slivers peeking from behind it rather than being mostly
-    // visible themselves — a much steeper scaleStep/minScale shrinks them
-    // fast, and a tighter radius keeps them pulled in close enough to sit
-    // mostly behind the bigger center card. angleStep (rotation per step)
-    // is unchanged so the same fan/perspective character carries over.
-    config: { spacing: 121, angleStep: 26, radius: 190, scaleStep: 0.34, minScale: 0.3, edgeFalloff: 4 },
+    // A noticeably larger center card than the side cards, which now read
+    // as thin slivers mostly cropped off by the viewport edge rather than
+    // being mostly visible themselves or overlapping the center card.
+    config: { spacing: 121, angleStep: 26, radius: 470, scaleStep: 0.34, minScale: 0.3, edgeFalloff: 4 },
   },
 ];
 
