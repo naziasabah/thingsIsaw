@@ -1,12 +1,13 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
-import { FEATURED_IMAGE, PHOTO_CAPTIONS, PHOTO_ORDER } from "./galleryConfig";
+import { DESCRIPTIONS, FEATURED_IMAGE, PHOTO_CAPTIONS, PHOTO_ORDER } from "./galleryConfig";
 
 export interface ArchiveImage {
   id: string;
   src: string;
   alt: string;
   caption?: string;
+  description?: string;
 }
 
 const PHOTOS_DIR = path.join(process.cwd(), "public", "photos");
@@ -65,5 +66,6 @@ export function getGalleryImages(): ArchiveImage[] {
     src: `/photos/${encodeURIComponent(filename)}`,
     alt: filenameToAlt(filename),
     caption: PHOTO_CAPTIONS[filename],
+    description: DESCRIPTIONS[filename],
   }));
 }

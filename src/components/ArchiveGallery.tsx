@@ -34,6 +34,18 @@ const FOCUS_SETTLE = 0.01;
 // How much bigger than a normal centered card (scale 1) the focused card
 // grows — clearly past anything reachable by scrolling alone.
 const FOCUS_SCALE_BONUS = 0.5;
+// Extra forward translateZ for the focused card, on top of its own
+// (near-zero, centered) depth. All cards share one preserve-3d rendering
+// context (see the container below), and Safari/WebKit is known to sort
+// overlapping geometry in such a context by actual 3D depth rather than
+// reliably honoring z-index — so a rotated neighbor's near edge can win the
+// paint order over the focused card despite its much higher z-index. The
+// worst case (an adjacent card at its steepest visible rotation) computes to
+// roughly 18px of forward intrusion at this carousel's tightest (mobile)
+// geometry; this boost clears that with comfortable margin on every
+// breakpoint. Eases in/out with `progress` like FOCUS_SCALE_BONUS, so it
+// reads as part of the same grow-into-focus motion.
+const FOCUS_Z_BOOST = 60;
 // How far the non-focused cards fade down while one card is focused. They
 // stay visible, just clearly secondary.
 const DIM_OPACITY = 0.28;
@@ -81,12 +93,25 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
 
   const [isDragging, setIsDragging] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
+  // Mirrors isFlipped for the imperative render loop below (refs, not state,
+  // since that loop runs outside React's render cycle).
+  const isFlippedRef = useRef(false);
+  useEffect(() => {
+    isFlippedRef.current = isFlipped;
+  }, [isFlipped]);
 
   const count = images.length;
+
+  // Mirrors the "mobile" breakpoint (archiveConfig's width<640 bucket) for
+  // the render loop below — kept as a plain ref, synced alongside configRef,
+  // rather than re-deriving it from configRef's tuned physics values.
+  const isMobileRef = useRef(false);
 
   useEffect(() => {
     function syncConfig() {
       configRef.current = getConfig(window.innerWidth);
+      isMobileRef.current = window.innerWidth < 640;
     }
     syncConfig();
     window.addEventListener("resize", syncConfig);
@@ -132,9 +157,34 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
         const saturation = 1 - colorDistance * (1 - SATURATION_MIN);
         const brightness = 1 - colorDistance * (1 - BRIGHTNESS_MIN);
 
-        el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${z.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
-        el.style.opacity = opacity.toFixed(3);
-        el.style.filter = `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
+        // `filter` (even an identity value) on an ancestor of the card's own
+        // 3D-transformed flip structure forces that subtree into its own
+        // compositing layer in Chromium/WebKit, which can break
+        // backface-visibility on the flip's front/back faces — bleed-through
+        // either between a card's own front/back, or (mobile only, where the
+        // tight carousel radius packs neighbors close enough on screen to be
+        // physically behind the focused card) from a neighboring card. On
+        // desktop the radius is wide enough that nothing sits behind the
+        // focused card, so this only needs to happen while actually flipped
+        // there; on mobile it's dropped for the whole time the card is
+        // focused. Either way the focused card has settled to raw≈0 (full
+        // color, opacity 1) by then anyway, so this has no visible effect on
+        // the color-grade/edge-fade look — mobile-only, desktop unaffected.
+        const hardenAgainstBleed = isFocused && (isFlippedRef.current || isMobileRef.current);
+        // z-index alone isn't reliable here: all cards share one preserve-3d
+        // rendering context (see the container below), and Safari/WebKit is
+        // known to sort overlapping geometry within such a context by actual
+        // 3D depth instead of respecting z-index — so give the focused card
+        // real forward depth too, not just the highest z-index (see
+        // FOCUS_Z_BOOST above). This is a general WebKit behavior, not a
+        // mobile-specific symptom, so — unlike the mobile-only hardening
+        // above — it applies on every breakpoint.
+        const zBoosted = isFocused ? z + progress * FOCUS_Z_BOOST : z;
+        el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), -50%, ${zBoosted.toFixed(2)}px) rotateY(${(-theta).toFixed(2)}deg) scale(${scale.toFixed(3)})`;
+        el.style.opacity = hardenAgainstBleed ? "1" : opacity.toFixed(3);
+        el.style.filter = hardenAgainstBleed
+          ? "none"
+          : `saturate(${saturation.toFixed(3)}) brightness(${brightness.toFixed(3)})`;
         // Only holds the top z-index while actively focused: during the
         // exit tail its still-enlarged footprint would otherwise keep
         // outranking (and stealing clicks from) a neighbor it visually
@@ -242,6 +292,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
     focusTargetRef.current = 1;
     velocityRef.current = 0;
     setFocusedIndex(index);
+    setIsFlipped(false);
   }
 
   function stepFocus(direction: 1 | -1) {
@@ -253,20 +304,26 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
   function exitFocus() {
     focusTargetRef.current = 0;
     setFocusedIndex(null);
+    setIsFlipped(false);
   }
 
   // Handles a genuine click/tap anywhere in the carousel, including empty
-  // background (index null). While a card is actively focused, ANY such
-  // click — the focused photo itself, a dimmed neighbor, or the empty
-  // background around them — exits focus, same as the close button.
-  // Otherwise a click that resolved to a card focuses it. Checked against
-  // focusTargetRef (the requested end-state) rather than focusedIndexRef
-  // (which lags behind until its fade animation settles) so a click made
-  // while a previous focus/exit is still animating out responds immediately
-  // instead of being silently swallowed.
+  // background (index null). While a card is actively focused, clicking the
+  // focused photo itself flips it to reveal its description (if it has one)
+  // rather than exiting; clicking anything else — a dimmed neighbor, or the
+  // empty background around them — still exits focus, same as the close
+  // button. Otherwise a click that resolved to a card focuses it. Checked
+  // against focusTargetRef (the requested end-state) rather than
+  // focusedIndexRef (which lags behind until its fade animation settles) so
+  // a click made while a previous focus/exit is still animating out
+  // responds immediately instead of being silently swallowed.
   function handleContainerActivation(index: number | null) {
     if (focusedIndexRef.current !== null && focusTargetRef.current === 1) {
-      exitFocus();
+      if (index === focusedIndexRef.current) {
+        if (images[index]?.description) setIsFlipped((flipped) => !flipped);
+      } else {
+        exitFocus();
+      }
     } else if (index !== null) {
       focusOn(index);
     }
@@ -375,6 +432,7 @@ export default function ArchiveGallery({ images }: ArchiveGalleryProps) {
               key={image.id}
               image={image}
               index={i}
+              isFlipped={focusedIndex === i && isFlipped}
               onActivate={handleContainerActivation}
               ref={(el) => { cardRefs.current[i] = el; }}
             />

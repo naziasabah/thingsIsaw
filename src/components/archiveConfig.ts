@@ -33,14 +33,16 @@ export const BREAKPOINTS: Breakpoint[] = [
   },
   {
     minWidth: 0,
-    cardWidth: 150,
-    cardHeight: 201,
-    // Tuned so ~3 cards sit fully in view with a peek of a 4th at each edge
-    // on a 375-430px phone, instead of the side cards touching the screen edge.
-    // scaleStep/angleStep are pushed well past desktop's so the size and
-    // rotation difference between center and side cards reads clearly on
-    // a small screen instead of looking flat.
-    config: { spacing: 121, angleStep: 26, radius: 258, scaleStep: 0.15, minScale: 0.4, edgeFalloff: 4 },
+    cardWidth: 230,
+    cardHeight: 308,
+    // A noticeably larger center card with the same 5-cards-visible count
+    // (edgeFalloff unchanged) as before, but the two cards on each side now
+    // read as thin slivers peeking from behind it rather than being mostly
+    // visible themselves — a much steeper scaleStep/minScale shrinks them
+    // fast, and a tighter radius keeps them pulled in close enough to sit
+    // mostly behind the bigger center card. angleStep (rotation per step)
+    // is unchanged so the same fan/perspective character carries over.
+    config: { spacing: 121, angleStep: 26, radius: 190, scaleStep: 0.34, minScale: 0.3, edgeFalloff: 4 },
   },
 ];
 
